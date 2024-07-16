@@ -1,0 +1,196 @@
+---
+title: "MyFirst Rmd"
+author: "Johannes"
+date: "2024-01-05"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r}
+
+library(tidyverse)
+
+```{r}
+
+nypd_data <- read.csv("/Users/galacticorm/Downloads/NYPD_Shooting_Incident_Data__Historic_.csv")
+
+```{r}
+
+summary(nypd_data)
+
+```{r}
+
+colnames(nypd_data)
+
+
+```{r}
+
+filtered_data <- nypd_data %>%
+  filter("BORO"  == "MANHATTAN")
+
+head(filtered_data)
+
+
+
+```{r}
+
+transformed_data <- nypd_data %>%
+  mutate(OCCUR_DATE = as.Date(OCCUR_DATE, format = "%m/%d/%Y"))
+
+head(transformed_data)
+ 
+
+```{r}
+
+grouped_summary <- nypd_data %>%
+  group_by(BORO) %>%
+  summarise(Incident_Count = n())
+
+print(grouped_summary)
+
+
+```{r}
+
+united_data <- nypd_data %>%
+  unite("DateTime", OCCUR_DATE, OCCUR_TIME, sep = " ")
+
+head(united_data)
+
+```{r}
+
+boro_avg_coords <- nypd_data %>%
+  group_by(BORO) %>%
+  summarise(
+    Avg_Latitude = mean(Latitude, na.rm = TRUE),
+    Avg_Longitude = mean(Longitude, na.rm = TRUE)
+  )
+
+head(boro_avg_coords)
+
+
+
+```{r}
+
+
+enriched_nypd_data <- left_join(nypd_data, boro_avg_coords, by = "BORO")
+
+head(enriched_nypd_data)
+
+
+```{r}
+
+library(ggplot2)
+
+ggplot(nypd_data, aes(x = BORO, fill = BORO)) +
+  geom_bar() +
+  theme_minimal() +
+  labs(title = "Number of Shooting Incidents by Borough",
+       x = "Borough",
+       y = "Number of Incidents") +
+  scale_fill_brewer(palette = "Set2") 
+
+
+```{r}
+
+nypd_data$OCCUR_DATE <- as.Date(nypd_data$OCCUR_DATE, format = "%m/%d/%Y")
+
+ggplot(nypd_data, aes(x = OCCUR_DATE)) +
+  geom_line(stat = "count", aes(group = 1, color = "Incidents Count")) +
+  theme_minimal() +
+  labs(title = "Trend of Shooting Incidents Over Time",
+       x = "Date",
+       y = "Number of Incidents") +
+  scale_color_brewer(palette = "Dark2") 
+
+
+```{r}
+
+ggplot(nypd_data, aes(x = Longitude, y = Latitude, color = STATISTICAL_MURDER_FLAG)) +
+  geom_point(alpha = 0.5) +
+  theme_minimal() +
+  labs(title = "Geographical Distribution of Shooting Incidents",
+       x = "Longitude",
+       y = "Latitude") +
+  scale_color_manual(values = c("FALSE" = "blue", "TRUE" = "red")) + 
+  theme(legend.title = element_blank()) 
+
+
+```{r}
+library(dplyr)
+
+# Identifying the borough with the highest number of shooting incidents
+top_boros <- nypd_data %>%
+  count(BORO) %>%
+  slice_max(n = 1, order_by = n)
+
+# Displaying the result
+print(top_boros)
+
+
+```{r}
+
+# Converting OCCUR_TIME to time format and filtering events between 9 PM and 1 AM
+night_time_shootings <- nypd_data %>%
+  mutate(OCCUR_TIME = hms(OCCUR_TIME)) %>%
+  filter(OCCUR_TIME >= hms("21:00:00") | OCCUR_TIME <= hms("01:00:00")) %>%
+  count(BORO) %>%
+  slice_max(n = 1, order_by = n)
+
+# Displaying the result
+print(night_time_shootings)
+
+
+```{r}
+
+
+# Assuming OCCUR_DATE is in a suitable date format
+# Extracting the year from OCCUR_DATE and counting incidents per year
+yearly_incidents <- nypd_data %>%
+  mutate(Year = year(as.Date(OCCUR_DATE, format = "%m/%d/%Y"))) %>%
+  count(Year) %>%
+  arrange(desc(n))
+
+# Displaying the yearly incidents
+print(yearly_incidents)
+
+# Identifying the year with the highest number of shooting incidents
+top_years <- slice_max(yearly_incidents, n = 5, order_by = n)
+
+# Displaying the top 5 years with the most incidents
+print(top_years)
+
+
+```{r}
+
+
+# Extracting the year from OCCUR_DATE and counting the number of shootings per year
+yearly_incidents <- nypd_data %>%
+  mutate(Year = year(as.Date(OCCUR_DATE, format = "%m/%d/%Y"))) %>%
+  count(Year) %>%
+  arrange(Year)
+
+# Creating a bar chart using ggplot2
+ggplot(yearly_incidents, aes(x = Year, y = n, fill = as.factor(Year))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(title = "Number of Shooting Incidents Per Year",
+       x = "Year",
+       y = "Number of Incidents") +
+  scale_fill_brewer(palette = "Spectral")  # Using a colorful palette for differentiation
+
